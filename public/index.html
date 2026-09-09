@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#F9F9FF">
+  <title>Design Demo · 设计语言展示</title>
+  <link rel="stylesheet" href="/css/style.css?v=showcase-3">
+  <script src="/js/markdown-it.min.js" defer></script>
+</head>
+<body>
+  <aside class="sidebar" aria-label="设计展厅导航">
+    <div class="brand-lockup">
+      <span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="3" y="3" width="18" height="18" rx="5"/><path d="M9 3v18M9 10h12"/></svg></span>
+      <div>
+        <strong>Design Demo</strong>
+        <span>设计语言展示</span>
+      </div>
+    </div>
+
+    <div class="sidebar-caption">设计语言 / 四个页面</div>
+    <nav class="nav-menu" id="sidebar-nav">
+      <button class="nav-item active" type="button" data-page="overview">
+        <span class="nav-icon" aria-hidden="true"></span>
+        <span>总览</span>
+      </button>
+      <button class="nav-item" type="button" data-page="components">
+        <span class="nav-icon" aria-hidden="true"></span>
+        <span>细节</span>
+      </button>
+      <button class="nav-item" type="button" data-page="ugc">
+        <span class="nav-icon" aria-hidden="true"></span>
+        <span>温度</span>
+      </button>
+      <button class="nav-item" type="button" data-page="docs">
+        <span class="nav-icon" aria-hidden="true"></span>
+        <span>细则</span>
+      </button>
+    </nav>
+
+    <div class="sidebar-rule"></div>
+    <div class="sidebar-note">
+      <span class="eyebrow">当前系统</span>
+      <strong>交互与表达</strong>
+      <span>四种颜色 · 本地交互 · 自由表达</span>
+    </div>
+  </aside>
+
+  <header class="mobile-header">
+    <div class="brand-lockup">
+      <span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="3" y="3" width="18" height="18" rx="5"/><path d="M9 3v18M9 10h12"/></svg></span>
+      <strong>Design Demo</strong>
+    </div>
+    <span class="mobile-header-tag">设计展示</span>
+  </header>
+
+  <main class="main-content" id="main-content">
+    <div class="mobile-nav" id="mobile-nav" aria-label="移动端展厅导航">
+      <button class="mobile-nav-item active" type="button" data-page="overview">总览</button>
+      <button class="mobile-nav-item" type="button" data-page="components">细节</button>
+      <button class="mobile-nav-item" type="button" data-page="ugc">温度</button>
+      <button class="mobile-nav-item" type="button" data-page="docs">细则</button>
+    </div>
+    <div id="showcase-root"></div>
+  </main>
+
+  <div id="toast-root" aria-live="polite" aria-atomic="true"></div>
+
+  <script type="module" src="/js/main.js?v=showcase-3"></script>
+</body>
+</html>

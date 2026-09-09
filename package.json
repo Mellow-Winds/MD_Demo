@@ -1,0 +1,35 @@
+{
+  "name": "design-demo",
+  "version": "1.0.0",
+  "description": "Design Demo — 设计语言展示",
+  "main": "showcase-server.cjs",
+  "scripts": {
+    "dev": "node showcase-server.cjs",
+    "start": "node showcase-server.cjs",
+    "check": "node --check showcase-server.cjs && node --check public/js/pages/showcase.js && node --check public/js/components/design-controls.js",
+    "test": "node --test tests/showcase_smoke.test.mjs",
+    "test:browser": "node scripts/browser-check.cjs",
+    "test:legacy": "node --test tests/*.test.mjs",
+    "test:e2e": "playwright test",
+    "test:e2e:headed": "playwright test --headed",
+    "test:e2e:ui": "playwright test --ui"
+  },
+  "dependencies": {
+    "bcryptjs": "^3.0.3",
+    "cropperjs": "^1.6.2",
+    "dotenv": "^17.4.2",
+    "express": "^4.21.0",
+    "helmet": "^8.2.0",
+    "jsonwebtoken": "^9.0.3",
+    "markdown-it": "^14.2.0",
+    "marked": "^18.0.4",
+    "multer": "^2.1.1",
+    "resend": "^6.12.4",
+    "sharp": "^0.34.5",
+    "sql.js": "^1.12.0",
+    "xlsx": "^0.18.5"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.60.0"
+  }
+}

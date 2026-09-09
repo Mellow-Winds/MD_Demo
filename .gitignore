@@ -1,0 +1,17 @@
+node_modules/
+db/eduspace.db
+uploads/
+.env
+test-results/
+playwright-report/
+
+# Database files
+db/*.db
+db/*.sqlite
+
+# PM2 配置文件（含密钥，禁止提交）
+ecosystem.config.js
+logs/
+
+# Local agent instructions
+AGENTS.md

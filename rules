@@ -1,0 +1,185 @@
+# Frontend Design System Rules
+
+## Color System
+- Define CSS variables: --color-primary, --color-secondary, --color-neutral-*, --color-success, --color-warning, --color-error
+- Backgrounds: white (#ffffff) or light gray (#f8f9fa, #f3f4f6) only
+- No gradients on backgrounds or buttons
+- No blue-purple gradients (linear-gradient with purple/violet/indigo) anywhere
+- No neon colors, no rainbow palettes
+- No more than 3 brand colors in any single view
+- Text colors: #111827 (primary), #6b7280 (secondary), #9ca3af (tertiary)
+
+## Typography
+- Font scale: 12px / 14px / 16px / 20px / 24px / 32px
+- CSS variables: --text-xs, --text-sm, --text-base, --text-lg, --text-xl, --text-2xl
+- Body: font-weight 400, line-height 1.5
+- Headings: font-weight 600, line-height 1.25
+- Do not mix px, rem, em — pick one unit system
+- No arbitrary font sizes outside the defined scale
+
+## Spacing
+- 4px base grid: 4 / 8 / 12 / 16 / 24 / 32 / 48 / 64px
+- CSS variables: --space-1 through --space-16
+- No magic numbers (13px, 7px, 23px, etc.)
+- Consistent padding within component families
+
+## Components
+Cards:
+- Use either border (1px solid #e5e7eb) OR shadow, not both
+- Shadow level 1: 0 1px 3px rgba(0,0,0,0.08)
+- Shadow level 2: 0 4px 12px rgba(0,0,0,0.1)
+- Border radius: 6px or 8px, no 16px+
+
+Buttons:
+- Primary: solid fill, no gradient
+- Secondary: outline or ghost
+- Hover: darken by 10%, not color switch
+- No rounded-full on rectangular buttons
+
+### Inputs (Material Design 3 Outlined Style)
+Use `createMdInput()` function to generate MD3 inputs. NEVER use native `<input class="input">`.
+
+**Structure:**
+```html
+<div class="md-input-group">
+  <input class="md-input" placeholder=" ">
+  <label class="md-label">Label</label>
+  <fieldset class="md-border"><legend><span>Label</span></legend></fieldset>
+</div>
+```
+
+**Style Properties:**
+- Height: 56px
+- Border: 1px solid var(--md-outline)
+- Border radius: 8px
+- Padding: 16px
+- Background: transparent
+- **resize: none** — ALL input fields and textarea MUST NOT be resizable by users. NEVER use `resize: vertical` or `resize: both`. This is mandatory for all form elements.
+
+**States:**
+- Hover: border-color → var(--md-on-surface)
+- Focus/Filled: border-color → var(--md-primary), border-width → 2px, label floats up (0.75rem)
+- Error: border-color + label → var(--md-error)
+
+**JS Helper:**
+```js
+createMdInput({ id, label, type, value, required, style, onchange, placeholder })
+```
+
+### Select (Material Design 3 Outlined Style)
+Use `createMdSelect()` function to generate MD3 selects. NEVER use native `<select>`.
+
+**Style Properties:**
+- Height: 56px
+- Border: 1px solid var(--md-outline)
+- Border radius: 8px
+- Padding: 16px
+- Background: transparent
+
+**States:**
+- Hover: border-color → var(--md-on-surface)
+- Open: border-color → var(--md-primary), border-width → 2px, arrow rotates 180°
+- Selected option: color → var(--md-primary), background → var(--md-primary-container)
+
+**Dropdown Menu:**
+- Background: var(--md-surface-container-lowest)
+- Border radius: 12px
+- Shadow: 0 4px 20px rgba(0,0,0,0.15)
+- Max height: 240px (scrollable)
+
+**JS Helper:**
+```js
+createMdSelect({ id, label, options, selected, style, onchange })
+// options: [{ text: '显示文本', value: '值' }]
+// onchange: 函数名字符串，如 'refreshList()'
+```
+
+### Tables
+- Border: 1px solid var(--md-outline-variant)
+- Header: background var(--md-surface-container), font-weight 600
+- Row hover: background var(--md-surface-container-low)
+- Cell padding: 12px 16px
+
+## Icons
+- Use one icon set consistently: Lucide / Heroicons / Phosphor
+- Size: 16px inline, 20px standalone
+- No emoji as functional icons
+
+## Forbidden Patterns
+- No blue-purple gradients
+- No glassmorphism unless explicitly requested
+- No emoji icons
+- No excessive shadows on every element
+- No inline styles for color, spacing, or typography
+- No magic numbers — every value must reference a design token
+- No more than 2 shadow depth levels per page
+
+## Input Field Rules
+- **禁止在 placeholder 中使用汉字**：所有输入框（input、textarea、select）的 `placeholder` 属性只能使用 `placeholder: ' '`（一个空格），不得包含任何中文或英文提示文字
+- 标签文字（label）不受此限制，可以使用中文
+- 正确示例：`createMdInput({ id: 'title', label: '标题', placeholder: ' ' })`
+- 错误示例：`createMdInput({ id: 'title', label: '标题', placeholder: '如：找考研搭子' })`
+
+---
+
+## Additional Components
+
+### Pill Tab (`.md-pills`, `.md-pill-btn`)
+- 胶囊形标签页切换
+- 选中态：背景 var(--md-primary-container)，颜色 var(--md-primary)
+- 未选中态：透明背景，颜色 var(--md-on-surface-variant)
+- 圆角：999px（pill shape）
+- 内边距：6px 16px
+
+### Status Badge (`.status-badge`)
+- 圆角 999px，内边距 2px 10px
+- 字号 12px，font-weight 600
+- 状态配色：
+  - 招募中/open：绿色 #e8f5e9 背景，#2e7d32 文字
+  - 已满/full：橙色 #fff3e0 背景，#e65100 文字
+  - 已关闭/过期：灰色 #f5f5f5 背景，#757575 文字
+
+### Category Tag (`.post-chip`, `.square-category-tag`)
+- 圆角 999px，内边距 2px 10px
+- 背景：var(--md-primary-container)
+- 颜色：var(--md-primary)
+- 字号 12px
+
+### Avatar Components
+- `.avatar-small`：32px 圆形，字号 14px，居中字母
+- `.profile-avatar`：64px 圆形，字号 24px
+- `.profile-avatar-letter`：字母占位
+
+### Toggle Switch (`.toggle-switch`)
+- 48px × 28px 圆角矩形
+- 滑块：22px 圆形，白色
+- 关闭态：灰色背景 var(--md-outline)
+- 开启态：主色背景 var(--md-primary)
+
+### Notification Panel (`.notification-panel`)
+- 固定定位，左下角（侧栏右侧）
+- 宽度 340px，最大高度 420px
+- 圆角 12px，阴影 0 8px 24px rgba(0,0,0,0.15)
+- 通知项：图标 + 标题 + 消息 + 时间 + 未读圆点
+
+### Rich Text Editor (`.rte-toolbar`, `.rte-editor`, `.rte-wrapper`)
+- 工具栏：加粗/斜体/下划线按钮
+- 编辑区：contenteditable div
+- 最小高度 200px
+
+### Upload Drop Zone (`.upload-drop-zone`)
+- 虚线边框 2px dashed var(--md-outline-variant)
+- 圆角 8px，内边距 32px
+- hover/drag-over 态：边框变主色，背景微蓝
+
+### Star Rating (`.stars-row`, `.star-icon`)
+- 5 颗星，18px
+- 填充色 #FB8C00
+- 未填充色 var(--md-outline-variant)
+- hover 态变色
+
+### Completion Progress Bar
+- 背景：var(--md-surface-variant)
+- 填充：var(--md-primary)
+- 高度 8px，圆角 4px
+- 数字标签：右侧显示 "5/7"
