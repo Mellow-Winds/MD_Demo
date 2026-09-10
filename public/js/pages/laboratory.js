@@ -10,7 +10,7 @@ const layerIcon = svg('<path d="m3 8 9-5 9 5-9 5-9-5Zm0 5 9 5 9-5M3 18l9 5 9-5"/
 const button = (label,action,kind='secondary') => '<button type="button" class="btn '+kind+'" data-lab-action="'+action+'">'+label+'</button>';
 
 export function renderLaboratory() {
- return '<div class="lab-page"><header class="page-heading"><p class="eyebrow">实验室 / 材质与感知</p><h1 tabindex="-1">轻一点，层次更分明。</h1><p>把玻璃作为界面的一层，而不是内容的装饰。调节材质、移动浮层，感受边界与反馈。</p></header>'+
+ return '<div class="lab-page"><header class="page-heading"><h1 tabindex="-1">轻一点，层次更分明。</h1><p>把玻璃作为界面的一层，而不是内容的装饰。调节材质、移动浮层，感受边界与反馈。</p></header>'+
  '<div class="lab-workbench"><section class="lab-preview" aria-label="玻璃材质交互场景"><div class="lab-scene" data-scene="rest">'+
  '<div class="lab-landscape" aria-hidden="true"><i class="lab-orbit"></i><i class="lab-disc"></i><i class="lab-bar"></i><span class="lab-backdrop-type">留白</span></div>'+
  '<div class="lab-scene-label"><span class="lab-dot"></span>材质观察窗</div>'+

@@ -11,9 +11,9 @@ arrow:'<path d="M5 12h14m-6-6 6 6-6 6"/>'
 };
 const icon = name => '<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">'+icons[name]+'</svg>';
 const btn = (text, attrs='', kind='secondary') => '<button type="button" class="btn '+kind+'" '+attrs+'>'+text+'</button>';
-const intro = (name,title,desc) => '<header class="page-heading"><p class="eyebrow">'+name+'</p><h1 tabindex="-1">'+title+'</h1><p>'+desc+'</p></header>';
+const intro = (_name,title,desc) => '<header class="page-heading"><h1 tabindex="-1">'+title+'</h1><p>'+desc+'</p></header>';
 const defaults = () => ({title:'把想法，变成自己的表达',author:'创作者',body:'<p>这里没有固定的主题。写下一段文字，再用<strong>自己的方式</strong>呈现它。</p>',showAuthor:true,showCards:true,cards:[{id:crypto.randomUUID(),title:'留白，也是表达',body:'标题、文字与形状，由你决定。',variant:'描边'}]});
-let draft = defaults(), ugcTab = 'post', currentPage = '', currentChapter = 0, chapters = null, routeVersion = 0, savedRange = null;
+let draft = defaults(), ugcTab = 'post', componentId = 'buttons', currentPage = '', currentChapter = 0, chapters = null, routeVersion = 0, savedRange = null;
 try {
  const saved=JSON.parse(localStorage.getItem('design-demo-draft'));
  if(saved && typeof saved.title==='string' && typeof saved.body==='string' && Array.isArray(saved.cards)) draft={...draft,...saved,cards:saved.cards.filter(c=>c && typeof c.title==='string' && typeof c.body==='string').map(c=>({...c,id:crypto.randomUUID(),variant:['描边','填充'].includes(c.variant)?c.variant:'描边'}))};
@@ -35,9 +35,10 @@ function overview() {
  '<section class="section statement"><h2>同一套原则，贯穿每个细节。</h2><p>借鉴 Material Design 的层级、状态与反馈，以及 Apple 人机界面指南的清晰、一致和用户控制。这里是独立的网页实现，并非官方组件库。</p><div class="row">'+btn('自定义表达 '+icon('arrow'),'data-page="ugc"','text')+btn('查看原则来源','data-page="docs"','text')+'</div></section>';
 }
 function components() {
- return intro('细节 / 可复用模块','看得见，也用得起来。','每个展示都是真实控件。试用状态、检查反馈，再带走完整的结构、样式与交互。')+
- '<nav class="section-nav" aria-label="模块目录">'+specimens.map(s=>btn(s.name,'data-anchor="'+s.id+'"','chip')).join('')+'</nav>'+
- specimens.map(s=>'<section class="specimen" id="'+s.id+'"><div class="section-heading"><div><h2>'+s.name+'</h2><p>'+s.desc+'</p></div>'+btn('下载示例','data-download="'+s.id+'"','text')+'</div><div class="specimen-stage">'+s.html()+'</div><details class="code-disclosure" data-specimen="'+s.id+'"><summary>查看与复制代码</summary><div class="code-tools"><div class="row">'+['结构','样式','交互'].map((t,i)=>btn(t,'data-code="'+i+'" aria-pressed="'+(!i)+'"','chip')).join('')+'</div>'+btn('复制代码','data-copy-code','text')+'</div><pre tabindex="0"><code>'+esc(s.html())+'</code></pre><p class="caption">下载示例包含全部依赖，可独立打开。样式与交互来自本页实际使用的共享模块。</p></details></section>').join('');
+ const activeId=specimens.some(s=>s.id===componentId)?componentId:specimens[0].id;
+ const active=specimens.find(s=>s.id===activeId);
+ return '<nav class="component-switcher" aria-label="模块目录">'+specimens.map(s=>'<button type="button" class="component-switch" data-component-tab="'+s.id+'" aria-selected="'+(s.id===activeId)+'">'+s.name+'</button>').join('')+'</nav>'+
+ '<section class="specimen active-specimen" id="'+active.id+'"><div class="section-heading"><div><h2>'+active.name+'</h2><p>'+active.desc+'</p></div>'+btn('下载示例','data-download="'+active.id+'"','text')+'</div><div class="specimen-stage">'+active.html()+'</div><details class="code-disclosure" data-specimen="'+active.id+'"><summary>查看与复制代码</summary><div class="code-tools"><div class="row">'+['结构','样式','交互'].map((t,i)=>btn(t,'data-code="'+i+'" aria-pressed="'+(!i)+'"','chip')).join('')+'</div>'+btn('复制代码','data-copy-code','text')+'</div><pre tabindex="0"><code>'+esc(active.html())+'</code></pre><p class="caption">下载示例包含全部依赖，可独立打开。样式与交互来自本页实际使用的共享模块。</p></details></section>';
 }
 function cardHtml(c) {return '<article class="content-card '+(c.variant==='填充'?'filled':'')+'"><h3>'+esc(c.title||'未命名卡片')+'</h3><p>'+esc(c.body)+'</p></article>';}
 function previewHtml() {
@@ -45,12 +46,12 @@ function previewHtml() {
 }
 function ugc() {
  return intro('温度 / 自定义表达','内容的样子，由你决定。','编辑文字、组织卡片、选择展示方式。没有预设业务，也不需要发布到任何服务。')+
- '<div class="workbench"><section class="editor-column"><div class="segmented" role="tablist" aria-label="编辑模式"><span class="segment-indicator" style="--segment:'+['post','cards','preview'].indexOf(ugcTab)+'"></span>'+[['post','帖子'],['cards','卡片'],['preview','预览']].map(([v,t])=>'<button type="button" role="tab" id="ugc-tab-'+v+'" aria-controls="ugc-panel" aria-selected="'+(ugcTab===v)+'" tabindex="'+(ugcTab===v?0:-1)+'" data-ugc-tab="'+v+'">'+t+'</button>').join('')+'</div><div id="ugc-panel" role="tabpanel" aria-labelledby="ugc-tab-'+ugcTab+'">'+ugcPanel()+'</div><div class="editor-actions row">'+btn('保存到本机','data-save','primary')+btn('导出内容','data-export')+btn('重置','data-reset','text')+'</div><p class="caption" id="draft-status" role="status">内容只保存在此浏览器；导出可带走文字与卡片。</p></section><aside class="preview-column"><div class="section-heading"><h2>实时呈现</h2><span>随编辑更新</span></div><div id="live-preview">'+previewHtml()+'</div></aside></div>';
+ '<div class="workbench"><section class="editor-column"><div class="page-switcher" role="tablist" aria-label="编辑模式">'+[['post','帖子'],['cards','卡片'],['preview','预览']].map(([v,t])=>'<button type="button" role="tab" id="ugc-tab-'+v+'" aria-controls="ugc-panel" aria-selected="'+(ugcTab===v)+'" tabindex="'+(ugcTab===v?0:-1)+'" data-ugc-tab="'+v+'">'+t+'</button>').join('')+'</div><div id="ugc-panel" role="tabpanel" aria-labelledby="ugc-tab-'+ugcTab+'">'+ugcPanel()+'</div><div class="editor-actions row">'+btn('保存到本机','data-save','primary')+btn('导出内容','data-export')+btn('重置','data-reset','text')+'</div><p class="caption" id="draft-status" role="status">内容只保存在此浏览器；导出可带走文字与卡片。</p></section><aside class="preview-column"><div class="section-heading"><h2>实时呈现</h2><span>随编辑更新</span></div><div id="live-preview">'+previewHtml()+'</div></aside></div>';
 }
 function ugcPanel() {
  if(ugcTab==='preview') return '<div class="full-preview">'+previewHtml()+'</div>';
  if(ugcTab==='cards') return '<div class="panel-heading"><h2>组织你的卡片</h2>'+btn('添加卡片','data-add-card','primary')+'</div><p class="caption">可自由编辑、移动与移除。展示不包含序号。</p><div class="card-editors">'+draft.cards.map((c,i)=>'<section class="card-editor" data-card-id="'+c.id+'">'+createMdInput({id:'card-title-'+c.id,label:'卡片标题',value:c.title,attrs:'data-card-field="title"'})+createMdInput({id:'card-body-'+c.id,label:'卡片正文',value:c.body,multiline:true,attrs:'data-card-field="body"'})+createMdSelect({id:'card-style-'+c.id,label:'容器样式',options:['描边','填充'],selected:c.variant})+'<div class="row">'+btn('上移','data-move="-1"'+(!i?' disabled':''),'text')+btn('下移','data-move="1"'+(i===draft.cards.length-1?' disabled':''),'text')+btn('移除','data-remove-card','text')+'</div></section>').join('')+'</div>'+(draft.cards.length?'':'<p class="empty-state">还没有卡片。添加一个空白容器，开始自己的表达。</p>');
- return '<div class="post-editor">'+createMdInput({id:'post-title',label:'标题',value:draft.title})+createMdInput({id:'post-author',label:'署名',value:draft.author})+'<div class="rich-editor"><div class="rich-toolbar" role="toolbar" aria-label="文字格式">'+[['strong','加粗','<b>粗</b>'],['em','斜体','<i>斜</i>'],['u','下划线','<u>线</u>'],['list','项目列表','列表'],['link','插入链接','链接'],['image','插入图片','图片']].map(([a,b,c])=>btn(c,'data-format="'+a+'" aria-label="'+b+'"','tool-button')).join('')+'</div><label class="editor-label" id="body-label">正文</label><div id="post-body" class="editable rich-body" contenteditable="true" role="textbox" aria-multiline="true" aria-labelledby="body-label">'+sanitizeRichHtml(draft.body)+'</div><input type="file" id="image-file" accept="image/png,image/jpeg,image/webp" hidden></div><p class="caption">选中文字后设置格式。图片保留原始内容；支持本地图片，最大两兆字节。</p>'+createSwitch('显示署名',{id:'show-author',checked:draft.showAuthor})+createSwitch('显示卡片',{id:'show-cards',checked:draft.showCards})+'</div>';
+ return '<div class="post-editor">'+createMdInput({id:'post-title',label:'标题',value:draft.title})+createMdInput({id:'post-author',label:'署名',value:draft.author})+'<div class="rich-editor"><div class="rich-toolbar" role="toolbar" aria-label="文字格式">'+[['strong','Bold','Bold'],['em','Italic','Italic'],['u','Underline','Underline'],['list','List','List'],['link','Link','Link'],['image','Image','Image']].map(([a,b,c])=>btn(c,'data-format="'+a+'" aria-label="'+b+'"','tool-button')).join('')+'</div><label class="editor-label" id="body-label">正文</label><div id="post-body" class="editable rich-body" contenteditable="true" role="textbox" aria-multiline="true" aria-labelledby="body-label">'+sanitizeRichHtml(draft.body)+'</div><input type="file" id="image-file" accept="image/png,image/jpeg,image/webp" hidden></div><p class="caption">选中文字后设置格式。图片保留原始内容；支持本地图片，最大两兆字节。</p>'+createSwitch('显示署名',{id:'show-author',checked:draft.showAuthor})+createSwitch('显示卡片',{id:'show-cards',checked:draft.showCards})+'</div>';
 }
 async function docs() {
  if(!chapters){
@@ -76,13 +77,22 @@ export function parseRoute(hash) {
 async function navigate() {
  const version=++routeVersion, {page,anchor}=parseRoute(location.hash), root=document.getElementById('showcase-root');
  if(page==='docs') currentChapter=/^\d+$/.test(anchor)?Number(anchor):0;
- if(page===currentPage && page==='components') {document.getElementById(anchor)?.scrollIntoView({behavior:reducedMotion()?'instant':'smooth',block:'start'});return;}
+ if(page==='components' && anchor) componentId=anchor;
+ if(page===currentPage && page==='components') {
+  root.innerHTML=components();
+  document.getElementById('main-content').scrollTop=0;
+  await transitionElement(root.querySelector('.active-specimen'));
+  return;
+ }
  if(page===currentPage && page==='docs' && chapters){
   currentChapter=Math.min(currentChapter,chapters.length-1);
+  const main=document.getElementById('main-content'), scrollTop=main.scrollTop;
   document.getElementById('chapter-content').innerHTML=chapterHtml();
+  main.scrollTop=scrollTop;
   document.querySelectorAll('[data-chapter]').forEach(b=>{if(b.closest('.chapter-nav'))b.setAttribute('aria-current',Number(b.dataset.chapter)===currentChapter?'location':'false');});
-  document.querySelector('.docs-layout').scrollIntoView({block:'start',behavior:'instant'});
-  await transitionElement(document.getElementById('chapter-content'));return;
+  await transitionElement(document.getElementById('chapter-content'));
+  main.scrollTop=scrollTop;
+  return;
  }
  await transitionElement(root,false); if(version!==routeVersion)return;
  try {
@@ -93,7 +103,7 @@ async function navigate() {
   document.querySelectorAll('[data-page]').forEach(b=>{b.classList.toggle('active',b.dataset.page===page); if(b.closest('nav')) b.setAttribute('aria-current',b.dataset.page===page?'page':'false');});
   root.querySelector('h1')?.focus({preventScroll:true});
   await transitionElement(root); if(version!==routeVersion)return;
-  if(page==='components'&&anchor)document.getElementById(anchor)?.scrollIntoView({block:'start'});
+  if(page==='components'&&anchor)document.querySelector('.active-specimen')?.focus({preventScroll:true});
  } catch(e) {disposePage();disposePage=()=>{};root.innerHTML='<div class="empty-state"><h1>暂时无法加载</h1><p>'+esc(e.message)+'</p>'+btn('重试','data-retry')+'</div>';currentPage='';}
 }
 function go(page,anchor='') {
@@ -103,6 +113,7 @@ function go(page,anchor='') {
 function refreshPreview(){document.getElementById('live-preview')?.replaceChildren();const p=document.getElementById('live-preview');if(p)p.innerHTML=previewHtml();}
 function refreshPanel(){
  const p=document.getElementById('ugc-panel');p.innerHTML=ugcPanel();p.setAttribute('aria-labelledby','ugc-tab-'+ugcTab);refreshPreview();
+ transitionElement(p);
 }
 function captureRange() {
  const editor=document.getElementById('post-body'), selection=getSelection();
@@ -145,11 +156,11 @@ export function initShowcase(){
  document.addEventListener('click',async e=>{
   const target=e.target;
   if(target.closest('[data-page]')){go(target.closest('[data-page]').dataset.page);return;}
-  if(target.closest('[data-anchor]')){go('components',target.closest('[data-anchor]').dataset.anchor);return;}
+  if(target.closest('[data-component-tab]')){go('components',target.closest('[data-component-tab]').dataset.componentTab);return;}
   if(target.closest('[data-chapter]')){go('docs',target.closest('[data-chapter]').dataset.chapter);return;}
   if(target.closest('[data-retry]'))navigate();
   const tab=target.closest('[data-ugc-tab]');
-  if(tab){ugcTab=tab.dataset.ugcTab;tab.closest('.segmented').querySelector('.segment-indicator').style.setProperty('--segment',['post','cards','preview'].indexOf(ugcTab));tab.parentElement.querySelectorAll('[role="tab"]').forEach(b=>{b.setAttribute('aria-selected',String(b===tab));b.tabIndex=b===tab?0:-1;});refreshPanel();}
+  if(tab){ugcTab=tab.dataset.ugcTab;tab.parentElement.querySelectorAll('[role="tab"]').forEach(b=>{b.setAttribute('aria-selected',String(b===tab));b.tabIndex=b===tab?0:-1;});refreshPanel();}
   const format=target.closest('[data-format]')?.dataset.format;
   if(format==='link')openDialog('插入链接',createMdInput({id:'link-url',label:'网页地址',type:'url',attrs:'required'}),{onSubmit:d=>{const href=d.querySelector('input').value;if(!/^https?:\/\//i.test(href)){showToast('请输入完整的网页地址');return false;}insertFormat('a',{href,rel:'noopener noreferrer'});}});
   else if(format==='image')document.getElementById('image-file').click();

@@ -8,6 +8,7 @@ const {connect}=require('./cdp.cjs');
  const E=c.evaluate;
  const delay=()=>new Promise(r=>setTimeout(r,550));
  const click=async selector=>{
+  await c.wait('!!document.querySelector('+JSON.stringify(selector)+')');
   await E('document.querySelector('+JSON.stringify(selector)+').scrollIntoView({block:"center"})');
   await new Promise(r=>setTimeout(r,100));
   const r=await E('(()=>{const r=document.querySelector('+JSON.stringify(selector)+').getBoundingClientRect();return {x:r.x+r.width/2,y:r.y+r.height/2}})()');
@@ -16,7 +17,7 @@ const {connect}=require('./cdp.cjs');
   await delay();
  };
  const key=async key=>{const vk={Escape:27,Enter:13,' ':32,ArrowLeft:37,ArrowUp:38,ArrowRight:39,ArrowDown:40,Home:36,End:35,Tab:9}[key];const params={key,code:key===' '?'Space':key,windowsVirtualKeyCode:vk,nativeVirtualKeyCode:vk};await c.send('Input.dispatchKeyEvent',{type:'keyDown',...params});await c.send('Input.dispatchKeyEvent',{type:'keyUp',...params});await delay();};
- const go=async route=>{await E('location.hash='+JSON.stringify('#'+route));await delay();};
+ const go=async route=>{const hash='#'+route,ready=route.startsWith('ugc')?'[data-reset]':route.startsWith('components')?'.component-switcher':route.startsWith('docs')?'.chapter-nav':'.hero';await E('location.hash='+JSON.stringify(hash));await c.wait('location.hash==='+JSON.stringify(hash)+' && !!document.querySelector('+JSON.stringify(ready)+')');await delay();};
  const fill=async(id,value)=>{await E('(()=>{const e=document.getElementById('+JSON.stringify(id)+');e.value='+JSON.stringify(value)+';e.dispatchEvent(new Event("input",{bubbles:true}));})()');};
  const selectText=async()=>{await E('(()=>{const el=document.getElementById("post-body");el.focus();const r=document.createRange();r.selectNodeContents(el);const s=getSelection();s.removeAllRanges();s.addRange(r);document.dispatchEvent(new Event("selectionchange"));})()');};
  try{
@@ -28,14 +29,17 @@ const {connect}=require('./cdp.cjs');
   await c.wait('document.querySelector(".hero")');await delay();
   await check('overview has four palette swatches and no business text',async()=>{
    assert.equal(await E('document.querySelectorAll(".swatch").length'),4);
+   assert.equal(await E('document.querySelector(".page-heading .eyebrow")'),null);
    assert.equal(await E('/课程|课搭子|大学|招募|学习搭子|EduSpace/.test(document.body.innerText)'),false);
    await c.screenshot('test-results/overview-desktop.png');
   });
-  await check('hero navigation and all seven component anchors preserve page',async()=>{
+  await check('component switcher refreshes one subpage without changing the main page',async()=>{
    await click('.hero [data-page="components"]');
    for(const id of ['buttons','fields','selects','switches','feedback','cards','states']){
-    await click('[data-anchor="'+id+'"]');assert.equal(await E('location.hash'),'#components/'+id);
-    assert.equal(await E('document.querySelectorAll(".specimen").length'),7);
+    await click('[data-component-tab="'+id+'"]');assert.equal(await E('location.hash'),'#components/'+id);
+    assert.equal(await E('document.querySelectorAll(".specimen").length'),1);
+    assert.equal(await E('document.querySelector(".component-switch[aria-selected=\'true\']").dataset.componentTab'),id);
+    assert.equal(await E('document.querySelector(".active-specimen h2").textContent'),await E('document.querySelector(".component-switch[aria-selected=\'true\']").textContent'));
    }
   });
   await check('card details open a modal, not the overview',async()=>{
@@ -80,6 +84,7 @@ const {connect}=require('./cdp.cjs');
   });
   await check('rich text formats selected text and updates preview',async()=>{
    await go('ugc');await click('[data-reset]');await click('dialog [type="submit"]');
+   assert.deepEqual(await E('[...document.querySelectorAll(".rich-toolbar button")].map(b=>b.textContent)'),['Bold','Italic','Underline','List','Link','Image']);
    await fill('post-title','完全自定义的标题');await fill('post-author','测试作者');
    await E('document.querySelector("#post-body").textContent="这是一段可以编辑的正文";document.querySelector("#post-body").dispatchEvent(new Event("input",{bubbles:true}))');
    await selectText();await click('[data-format="strong"]');
@@ -119,9 +124,12 @@ const {connect}=require('./cdp.cjs');
   });
   await check('all twelve document chapters retain the same directory node',async()=>{
    await go('docs');await c.wait('document.querySelector(".chapter-nav")');
+   assert.equal(await E('document.querySelector(".page-heading .eyebrow")'),null);
    await E('window.__directory=document.querySelector(".chapter-nav")');
+   await E('document.querySelector("main").scrollTop=160');
+   let chapterScroll=await E('document.querySelector("main").scrollTop');
    assert.equal(await E('document.querySelectorAll(".chapter-nav button").length'),12);
-   for(let i=0;i<12;i++){await click('.chapter-nav [data-chapter="'+i+'"]');assert.equal(await E('document.querySelector(".chapter-nav")===window.__directory'),true);assert.equal(await E('document.querySelector(".chapter-nav").getBoundingClientRect().top>=0'),true);assert.equal(await E('location.hash'),'#docs/'+i);}
+   for(let i=0;i<12;i++){await E('document.querySelector('+JSON.stringify('.chapter-nav [data-chapter="'+i+'"]')+').click()');await delay();assert.equal(await E('document.querySelector(".chapter-nav")===window.__directory'),true);assert.equal(await E('document.querySelector(".chapter-nav").getBoundingClientRect().top>=0'),true);chapterScroll=await E('Math.min('+chapterScroll+',document.querySelector("main").scrollHeight-document.querySelector("main").clientHeight)');assert.equal(await E('document.querySelector("main").scrollTop'),chapterScroll);assert.equal(await E('location.hash'),'#docs/'+i);}
    await c.screenshot('test-results/docs-desktop.png');
    await c.send('Page.reload');await c.wait('document.querySelector(".prose h2")');assert.match(await E('document.querySelector(".prose h2").textContent'),/11\./);
    await E('history.back()');await delay();assert.equal(await E('location.hash'),'#docs/10');
@@ -137,9 +145,10 @@ const {connect}=require('./cdp.cjs');
     }
    }
   });
-  await check('reduced motion disables slider transitions and page animations',async()=>{
+  await check('reduced motion disables subpage transitions and page animations',async()=>{
    await c.send('Emulation.setEmulatedMedia',{features:[{name:'prefers-reduced-motion',value:'reduce'}]});
-   await go('ugc');assert.equal(await E('getComputedStyle(document.querySelector(".segment-indicator")).transitionDuration'),'0s');
+   await go('ugc');assert.equal(await E('getComputedStyle(document.querySelector(".page-switcher button")).transitionDuration'),'0s');
+   assert.equal(await E('document.querySelector(".segment-indicator")'),null);
    assert.equal(await E('document.getAnimations().length'),0);
    await c.send('Emulation.setEmulatedMedia',{features:[]});
   });
@@ -149,7 +158,7 @@ const {connect}=require('./cdp.cjs');
    const result=await E('(()=>{const b=document.querySelectorAll(".chapter-nav button")[1];b.click();b.click();const r=b.querySelector(".ripple");return {count:b.querySelectorAll(".ripple").length,width:r.getBoundingClientRect().width,limit:parseFloat(r.style.width),clip:getComputedStyle(b).overflow}})()');
    assert.equal(result.count,1);assert.ok(result.limit<=160);assert.equal(result.clip,'hidden');
    await go('ugc');
-   assert.equal(await E('getComputedStyle(document.querySelector(".segment-indicator")).display'),'none');
+   assert.equal(await E('document.querySelector(".segment-indicator")'),null);
   });
   await check('toast stays horizontally centered throughout its animation',async()=>{
    const centers=await E('(async()=>{const {showToast}=await import("/js/components/design-controls.js");showToast("居中检查");const values=[];for(let i=0;i<24;i++){await new Promise(requestAnimationFrame);const r=document.querySelector(".toast").getBoundingClientRect();values.push(Math.abs(r.left+r.width/2-innerWidth/2));}return values})()');
@@ -172,9 +181,8 @@ const {connect}=require('./cdp.cjs');
    await go('ugc');await click('[data-export]');await delay();
    const exported=JSON.parse(await fs.readFile(path.join(dir,'自定义内容.json'),'utf8'));
    assert.equal(exported.title,'完全自定义的标题');assert.equal(exported.cards[0].title,'新的卡片');
-   await go('components');
    const ids=['buttons','fields','selects','switches','feedback','cards','states'];
-   for(const id of ids)await click('[data-download="'+id+'"]');
+   for(const id of ids){await go('components/'+id);await click('[data-download="'+id+'"]');}
    for(const id of ids){
     const file=path.join(dir,id+'.html');let exists=false;
     for(let i=0;i<30;i++){try{await fs.access(file);exists=true;break;}catch{await new Promise(r=>setTimeout(r,100));}}

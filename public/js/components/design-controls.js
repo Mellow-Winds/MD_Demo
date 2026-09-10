@@ -39,7 +39,15 @@ export async function transitionElement(el, entering = true) {
       [{opacity:1,transform:'none'},{opacity:0,transform:'translateY(-8px)'}],
       {duration: entering ? 280 : 140, easing: entering ? 'cubic-bezier(.2,0,0,1)' : 'ease-in'});
     await animation.finished;
-  } catch {} finally { animation?.cancel(); }
+  } catch {} finally {
+    animation?.cancel();
+    el.style.opacity = '1';
+    el.style.transform = 'none';
+    const pointerEvents = el.style.pointerEvents;
+    el.style.pointerEvents = 'none';
+    void el.offsetHeight;
+    el.style.pointerEvents = pointerEvents;
+  }
 }
 
 let toastTimer;
