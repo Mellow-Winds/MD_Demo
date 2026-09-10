@@ -1,6 +1,6 @@
 # Design Demo
 
-一个只展示设计语言的网页项目，使用原生 JavaScript 模块与自定义 MD3 风格组件。界面分成四个独立页面：总览、细节、温度、细则。
+一个只展示设计语言的网页项目，使用原生 JavaScript 模块与自定义 MD3 风格组件。界面包含五个独立页面：总览、细节、温度、细则、实验室。
 
 ## 启动
 
@@ -24,8 +24,11 @@ npm run dev
 - 细节：按钮、输入、下拉、开关、标签页、弹窗、卡片、进度；复制源码或下载可独立运行的示例。
 - 温度：真实富文本、自定义署名与卡片、增减与排序、实时预览、本机草稿及内容导出。
 - 细则：`develop/design.md` 的十二章，目录在章节切换时持续可用。
+- 实验室：玻璃卡片与工具栏、材质调节、可打断的拖动回弹、玻璃弹窗，以及当前材质样式复制。
 
 只有四个基础色。深色主按钮采用基础色混合并搭配浅色文字；状态不引入额外红绿橙色。分段切换只保留有界涟漪，没有滑动背景。所有非必要动画响应系统减少动态效果设置。
+
+玻璃态仅在实验室启用，参考 `apple-design` 技能的材质层次、空间稳定、即时反馈和用户控制原则。默认尊重系统降低透明度及增强对比度设置；系统降低透明度时可主动选择“本页预览玻璃”，退出后恢复，不修改系统配置。浏览器不支持背景模糊时自动回退为实色。
 
 ## 验证
 
@@ -33,6 +36,7 @@ npm run dev
 npm run check
 npm test
 npm run test:browser
+npm run test:lab
 ```
 
 这是无需打包的原生网页项目；`check` 检查入口与共享模块语法，`test` 验证真实静态服务、工厂函数、四色约束和对比度。
@@ -53,10 +57,13 @@ npm run test:browser
 
 - `public/index.html`：页面骨架。
 - `public/js/pages/showcase.js`：四页及编辑逻辑。
+- `public/js/pages/laboratory.js`：实验室独立视图、材质状态与可清理的交互控制器。
+- `public/css/laboratory.css`：只作用于实验室与其弹窗的玻璃样式。
 - `public/js/components/design-controls.js`：共享控件与安全内容处理。
 - `public/css/style.css`：统一样式。
 - `develop/design.md`：设计合同、来源和验收清单。
 - `scripts/browser-check.cjs`：交互及视口回归。
+- `scripts/lab-browser-check.cjs`：玻璃呈现、拖动与中断、键盘、偏好回退、隔离性及五种视口回归。
 - `showcase-server.cjs`：只读服务。
 
 ## 范围

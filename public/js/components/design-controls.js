@@ -32,12 +32,14 @@ export function createSwitch(label, {id = '', checked = false, disabled = false}
 export function reducedMotion() { return matchMedia('(prefers-reduced-motion: reduce)').matches; }
 
 export async function transitionElement(el, entering = true) {
-  if (!el || reducedMotion()) return;
+  if (!el || reducedMotion() || el.closest?.('[data-still="true"]') || el.querySelector?.('.lab-page[data-still="true"]')) return;
+  let animation;
   try {
-    await el.animate(entering ? [{opacity: 0, transform:'translateY(12px)'},{opacity:1,transform:'none'}] :
+    animation = el.animate(entering ? [{opacity: 0, transform:'translateY(12px)'},{opacity:1,transform:'none'}] :
       [{opacity:1,transform:'none'},{opacity:0,transform:'translateY(-8px)'}],
-      {duration: entering ? 280 : 140, easing: entering ? 'cubic-bezier(.2,0,0,1)' : 'ease-in'}).finished;
-  } catch {}
+      {duration: entering ? 280 : 140, easing: entering ? 'cubic-bezier(.2,0,0,1)' : 'ease-in'});
+    await animation.finished;
+  } catch {} finally { animation?.cancel(); }
 }
 
 let toastTimer;
@@ -78,7 +80,7 @@ export function openDialog(title, html, {sheet = false, onSubmit} = {}) {
   const dismiss = async () => {
     if (closing) return;
     closing = true;
-    if (!reducedMotion()) {
+    if (!reducedMotion() && dialog.dataset.still !== 'true') {
       try { await dialog.animate([{opacity:1,transform:'translateY(0)'},{opacity:0,transform:sheet?'translateY(32px)':'translateY(12px)'}],{duration:140,easing:'ease-in',fill:'forwards'}).finished; } catch {}
     }
     if (dialog.open) dialog.close();
@@ -122,7 +124,7 @@ export function initControls(root = document) {
   const options = {signal:abort.signal};
   function rippleAt(e) {
     const button=e.target.closest('button, [data-ripple]');
-    if(!button || button.disabled || reducedMotion()) return;
+    if(!button || button.disabled || reducedMotion() || button.closest('[data-still="true"]')) return;
     button.querySelectorAll('.ripple').forEach(n=>n.remove());
     const r=button.getBoundingClientRect(),size=Math.min(160,Math.max(r.width,r.height)*1.4);
     const x=e.detail===0 && e.type==='click'?r.width/2:e.clientX-r.left;

@@ -1,10 +1,12 @@
 import {escapeHtml as esc, createMdInput, createMdSelect, createSwitch, initControls, openDialog, showToast, transitionElement, sanitizeRichHtml, reducedMotion} from '../components/design-controls.js';
+import {renderLaboratory, mountLaboratory} from './laboratory.js';
 
 const icons = {
 overview:'<rect x="3" y="3" width="7" height="7" rx="2"/><rect x="14" y="3" width="7" height="7" rx="2"/><rect x="3" y="14" width="7" height="7" rx="2"/><rect x="14" y="14" width="7" height="7" rx="2"/>',
 components:'<path d="M4 7h16M4 17h16"/><circle cx="9" cy="7" r="3"/><circle cx="15" cy="17" r="3"/>',
 ugc:'<path d="M20 4c-3-3-7 0-8 2-1-2-5-5-8-2-5 5 8 16 8 16S25 9 20 4Z"/>',
 docs:'<path d="M5 3h10l4 4v14H5Z M14 3v5h5M8 12h8M8 16h6"/>',
+lab:'<path d="M9 3h6M10 3v7L4 19a1.3 1.3 0 0 0 1 2h14a1.3 1.3 0 0 0 1-2l-6-9V3M7 15h10"/>',
 arrow:'<path d="M5 12h14m-6-6 6 6-6 6"/>'
 };
 const icon = name => '<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">'+icons[name]+'</svg>';
@@ -65,7 +67,8 @@ function chapterHtml() {
  const body=md.render(chapters[currentChapter].content);
  return '<article class="prose">'+body+'</article><nav class="chapter-pager" aria-label="章节翻页">'+btn('上一章','data-chapter="'+(currentChapter-1)+'"'+(!currentChapter?' disabled':''))+btn('下一章','data-chapter="'+(currentChapter+1)+'"'+(currentChapter===chapters.length-1?' disabled':''))+'</nav>';
 }
-const renderers={overview,components,ugc,docs};
+const renderers={overview,components,ugc,docs,lab:renderLaboratory};
+let disposePage = () => {};
 export function parseRoute(hash) {
  const [candidate,anchor='']=hash.replace(/^#/,'').split('/');
  return {page:Object.hasOwn(renderers,candidate)?candidate:'overview',anchor};
@@ -84,12 +87,14 @@ async function navigate() {
  await transitionElement(root,false); if(version!==routeVersion)return;
  try {
   const html=await renderers[page](); if(version!==routeVersion)return;
+  disposePage();disposePage=()=>{};
   root.innerHTML=html; currentPage=page; document.getElementById('main-content').scrollTop=0;
+  if(page==='lab')disposePage=mountLaboratory(root);
   document.querySelectorAll('[data-page]').forEach(b=>{b.classList.toggle('active',b.dataset.page===page); if(b.closest('nav')) b.setAttribute('aria-current',b.dataset.page===page?'page':'false');});
   root.querySelector('h1')?.focus({preventScroll:true});
   await transitionElement(root); if(version!==routeVersion)return;
   if(page==='components'&&anchor)document.getElementById(anchor)?.scrollIntoView({block:'start'});
- } catch(e) {root.innerHTML='<div class="empty-state"><h1>暂时无法加载</h1><p>'+esc(e.message)+'</p>'+btn('重试','data-retry')+'</div>';currentPage='';}
+ } catch(e) {disposePage();disposePage=()=>{};root.innerHTML='<div class="empty-state"><h1>暂时无法加载</h1><p>'+esc(e.message)+'</p>'+btn('重试','data-retry')+'</div>';currentPage='';}
 }
 function go(page,anchor='') {
  const hash='#'+page+(anchor?'/'+anchor:'');

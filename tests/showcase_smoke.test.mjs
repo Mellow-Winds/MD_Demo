@@ -40,12 +40,20 @@ test('selection and switches expose explicit accessible state',()=>{
  assert.match(select,/aria-expanded="false"/);assert.match(select,/aria-selected="true">填充/);assert.match(select,/select-chevron/);assert.ok(!select.includes('<select'));
  assert.match(createSwitch('反馈',{id:'feedback',checked:true,disabled:true}),/role="switch" id="feedback" checked disabled/);
 });
-test('active runtime contains only four pages and four base colors',async()=>{
+test('active runtime has five routes and retains four base colors',async()=>{
  const [index,css,js]=await Promise.all([read('public/index.html'),read('public/css/style.css'),read('public/js/pages/showcase.js')]);
- assert.deepEqual([...new Set([...index.matchAll(/data-page="([^"]+)"/g)].map(m=>m[1]))],['overview','components','ugc','docs']);
+ assert.deepEqual([...new Set([...index.matchAll(/data-page="([^"]+)"/g)].map(m=>m[1]))],['overview','components','ugc','docs','lab']);
  assert.deepEqual([...new Set([...css.matchAll(/#[0-9a-f]{6}\b/gi)].map(m=>m[0].toUpperCase()))].sort(),['#1A1B21','#4A90D9','#D3E4FD','#F9F9FF']);
  assert.doesNotMatch(index+js,/课搭子|加入课程|大学英语|学习搭子|EduSpace|blue-whale/);
  assert.doesNotMatch(css,/linear-gradient|backdrop-filter/);
+});
+test('glass styling is isolated and has accessibility and browser fallbacks',async()=>{
+ const css=await read('public/css/laboratory.css');
+ assert.match(css,/backdrop-filter:blur\(var\(--lab-blur\)\)/);
+ assert.match(css,/prefers-reduced-transparency/);
+ assert.match(css,/prefers-contrast/);
+ assert.match(css,/@supports not/);
+ assert.doesNotMatch(css,/:root|\.sidebar|\.mobile-nav|\.md-field/);
 });
 test('primary action white text meets normal-text contrast',()=>{
  const blend=(a,b,t)=>a.map((v,i)=>(v*t+b[i]*(1-t))/255);
