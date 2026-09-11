@@ -29,7 +29,7 @@ export function createSwitch(label, {id = '', checked = false, disabled = false}
     '"' + (checked ? ' checked' : '') + (disabled ? ' disabled' : '') + '><span class="switch-track" aria-hidden="true"><i></i></span></label>';
 }
 
-export function reducedMotion() { return matchMedia('(prefers-reduced-motion: reduce)').matches; }
+export function reducedMotion() { return document.body.dataset.still === 'true' || matchMedia('(prefers-reduced-motion: reduce)').matches; }
 
 export async function transitionElement(el, entering = true) {
   if (!el || reducedMotion() || el.closest?.('[data-still="true"]') || el.querySelector?.('.lab-page[data-still="true"]')) return;
@@ -168,8 +168,8 @@ export function initControls(root = document) {
     }
     if (!e.target.closest('.md-select')) closeSelects();
     const modal = e.target.closest('[data-demo-dialog]');
-    if (modal) openDialog('操作确认','<p>确认后将显示操作反馈。</p>',{onSubmit:() => showToast('已确认')});
-    if (e.target.closest('[data-demo-sheet]')) openDialog('底部操作菜单','<p>操作保持清晰，取消始终可用。</p>',{sheet:true});
+    if (modal) openDialog('操作确认','<p>确认操作？</p>',{onSubmit:() => showToast('已确认')});
+    if (e.target.closest('[data-demo-sheet]')) openDialog('底部菜单','<p>确认操作？</p>',{sheet:true});
     if (e.target.closest('[data-demo-toast]')) showToast('操作已完成');
     if (e.target.closest('[data-demo-card]')) openDialog('卡片详情','<p>标题、正文与操作使用相同的间距和颜色。</p>');
   },options);

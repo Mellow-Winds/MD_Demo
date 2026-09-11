@@ -1,0 +1,88 @@
+const assert=require('node:assert/strict');
+const fs=require('node:fs/promises');
+const {connect}=require('./cdp.cjs');
+(async()=>{
+ const c=await connect(),E=c.evaluate;
+ const pause=()=>new Promise(r=>setTimeout(r,400));
+ const click=async s=>{await E(`document.querySelector(${JSON.stringify(s)}).click()`);await pause();};
+ const go=async route=>{await E(`location.hash=${JSON.stringify(route)}`);await pause();};
+ const count=s=>E(`document.querySelectorAll(${JSON.stringify(s)}).length`);
+ try{
+  await fs.mkdir('test-results',{recursive:true});
+  await c.send('Page.enable');
+  await c.send('Emulation.setEmulatedMedia',{features:[{name:'prefers-reduced-transparency',value:'no-preference'},{name:'prefers-reduced-motion',value:'no-preference'}]});
+  await c.send('Page.addScriptToEvaluateOnNewDocument',{source:'window.__errors=[];addEventListener("error",e=>__errors.push(e.message));addEventListener("unhandledrejection",e=>__errors.push(String(e.reason)))'});
+  await c.send('Emulation.setDeviceMetricsOverride',{width:1600,height:1000,deviceScaleFactor:1,mobile:false});
+  await c.send('Page.navigate',{url:'http://localhost:3100/?gallery-check#overview'});
+  await c.wait('!!document.querySelector(".overview-window")');
+  await pause();
+  assert.equal(await count('.overview-columns>.material-stage'),3);
+  assert.equal(await count('[data-page="lab"]'),0);
+  assert.equal(await E('new Set([...document.querySelectorAll("[id]")].map(x=>x.id)).size===document.querySelectorAll("[id]").length'),true);
+  await c.screenshot('test-results/gallery-overview.png');
+  await go('components/buttons');
+  assert.equal(await count('.button-grid button'),6);assert.equal(await count('.disabled-examples button:disabled'),2);
+  await E('document.querySelector(".button-grid button").dispatchEvent(new PointerEvent("pointerdown",{bubbles:true,button:0,clientX:400,clientY:300}))');
+  assert.equal(await count('.button-grid .ripple'),1);
+  assert.equal(await count('.code-tools button'),5);assert.equal(await count('.code-card pre code'),1);
+  await click('[data-code="1"]');assert.match(await E('document.querySelector(".code-card code").textContent'),/gallery-toast/);
+  await click('[data-code="2"]');assert.match(await E('document.querySelector(".code-card code").textContent'),/galleryBehaviors/);
+  console.log('PASS overview and button/code structure');
+  await go('components/selects');assert.equal(await count('.md-select'),2);
+  await click('.options-select .select-trigger');assert.equal(await E('document.querySelector(".options-select .select-trigger").getAttribute("aria-expanded")'),'true');
+  await click('.options-select [role="option"]:last-child');assert.match(await E('document.querySelector(".options-select .select-trigger").textContent'),/选择3/);
+  await E('document.querySelector(".options-select .select-trigger").focus();document.activeElement.dispatchEvent(new KeyboardEvent("keydown",{key:"Home",bubbles:true}));document.activeElement.dispatchEvent(new KeyboardEvent("keydown",{key:"Enter",bubbles:true}))');
+  assert.match(await E('document.querySelector(".options-select .select-trigger").textContent'),/选择1/);
+  await go('components/switches');assert.equal(await count('.specimen input:checked'),1);
+  await click('[data-gallery-tab]:last-child');assert.equal(await E('document.querySelector(".tab-result").textContent'),'选择3');
+  await click('[data-gallery-toast="right"]');assert.equal(await count('.gallery-toast.at-right'),1);
+  await click('[data-gallery-toast="bottom"]');assert.equal(await count('.gallery-toast:not(.at-right)'),1);
+  await go('components/states');await click('[data-progress="20"]');assert.equal(await E('document.querySelector("progress").value'),60);
+  await click('[data-progress="-20"]');assert.equal(await E('document.querySelector("progress").value'),40);
+  assert.notEqual(await E('getComputedStyle(document.querySelector(".visual-progress span")).transitionDuration'),'0s');
+  console.log('PASS selects, switches, tabs, two toasts and bidirectional progress');
+  await go('components/cards');assert.equal(await count('.card-stack-showcase>.material-stage'),3);
+  await click('[data-material-mode="liquid-glass"]');
+  assert.match(await E('getComputedStyle(document.querySelector(".sidebar")).backdropFilter'),/blur/);
+  await E('const r=document.querySelector("#adjust-blur");r.value=0;r.dispatchEvent(new Event("input",{bubbles:true}))');
+  await c.send('Page.reload');await c.wait('!!document.querySelector("#adjust-blur")');
+  assert.equal(await E('document.querySelector("#adjust-blur").value'),'0');
+  await click('[data-adjust-reset]');
+  assert.equal(await E('document.querySelector("#adjust-blur").value'),'24');
+  await c.screenshot('test-results/gallery-cards.png');
+  await go('components/fields');assert.equal(await E('getComputedStyle(document.querySelector(".input-surface")).backgroundColor'),'rgb(246, 248, 251)');
+  console.log('PASS materials, opaque input wrapper and persistent adjustment');
+  await go('ugc');assert.equal(await count('[data-ugc-tab="preview"]'),0);assert.equal(await count('.preview-column .editor-actions button'),3);
+  assert.equal(await E('document.querySelector("[data-format=strong]").textContent'),'B');
+  await E('document.querySelector("[data-ugc-tab=post]").dispatchEvent(new KeyboardEvent("keydown",{key:"ArrowRight",bubbles:true}))');
+  assert.equal(await E('document.querySelector("[data-ugc-tab=cards]").getAttribute("aria-selected")'),'true');
+  await click('[data-ugc-tab=post]');
+  await E('document.querySelector("#post-title").value="测试标题";document.querySelector("#post-title").dispatchEvent(new Event("input",{bubbles:true}))');
+  assert.equal(await E('document.querySelector(".post-preview h2").textContent'),'测试标题');
+  await click('[data-save]');assert.match(await E('localStorage.getItem("design-demo-draft")'),/测试标题/);
+  await c.screenshot('test-results/gallery-editor.png');
+  for(const width of [1440,1024,390,320]){
+   await c.send('Emulation.setDeviceMetricsOverride',{width,height:900,deviceScaleFactor:1,mobile:false});
+   for(const route of ['overview','components/buttons','components/selects','components/cards','components/states','ugc']){
+    await go(route);
+    assert.ok(await E('document.documentElement.scrollWidth<=innerWidth+1'),`page overflow ${width} ${route}`);
+    assert.ok(await E('document.querySelector(".main-content").scrollWidth<=document.querySelector(".main-content").clientWidth+1'),`main overflow ${width} ${route}`);
+   }
+  }
+  await c.screenshot('test-results/gallery-mobile.png');
+  await go('docs');await c.wait('!!document.querySelector(".chapter-nav")');
+  assert.equal(await count('.chapter-nav [data-chapter]'),12);
+  assert.deepEqual(await E('window.__errors'),[]);
+  await go('components/states');
+  await E('window.__export="";const original=URL.createObjectURL;URL.createObjectURL=blob=>{blob.text().then(text=>window.__export=text);return original(blob)}');
+  await click('[data-download]');await c.wait('window.__export.length>1000');
+  const html=await E('window.__export');
+  assert.match(html,/galleryBehaviors\(document\)/);
+  await c.send('Page.navigate',{url:'data:text/html;base64,'+Buffer.from(html).toString('base64')});
+  await c.wait('!!document.querySelector("[data-progress]")');await pause();
+  await click('[data-progress="20"]');assert.equal(await E('document.querySelector("progress").value'),60);
+  assert.deepEqual(await E('window.__errors'),[]);
+  console.log('PASS downloaded standalone example');
+  console.log('PASS editor and 24 responsive route/width checks; no browser errors');
+ }finally{c.close();}
+})().catch(e=>{console.error(e);process.exitCode=1});

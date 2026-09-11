@@ -16,7 +16,7 @@ test('read-only server serves the app, shared assets and twelve chapters',async(
  await new Promise(resolve=>server.on('listening',resolve));
  const base='http://127.0.0.1:'+server.address().port;
  try {
-  for(const [url,type] of [['/','text/html'],['/css/style.css','text/css'],['/js/pages/showcase.js','javascript'],['/js/components/design-controls.js','javascript'],['/showcase/design.md','markdown']]){
+  for(const [url,type] of [['/','text/html'],['/css/style.css','text/css'],['/css/material-modes.css','text/css'],['/js/pages/showcase.js','javascript'],['/js/components/design-controls.js','javascript'],['/showcase/design.md','markdown']]){
    const r=await fetch(base+url);assert.equal(r.status,200,url);assert.ok(r.headers.get('content-type').includes(type));
   }
   const doc=await(await fetch(base+'/showcase/design.md')).text();
@@ -40,20 +40,25 @@ test('selection and switches expose explicit accessible state',()=>{
  assert.match(select,/aria-expanded="false"/);assert.match(select,/aria-selected="true">填充/);assert.match(select,/select-chevron/);assert.ok(!select.includes('<select'));
  assert.match(createSwitch('反馈',{id:'feedback',checked:true,disabled:true}),/role="switch" id="feedback" checked disabled/);
 });
-test('active runtime has five routes and retains four base colors',async()=>{
- const [index,css,js]=await Promise.all([read('public/index.html'),read('public/css/style.css'),read('public/js/pages/showcase.js')]);
- assert.deepEqual([...new Set([...index.matchAll(/data-page="([^"]+)"/g)].map(m=>m[1]))],['overview','components','ugc','docs','lab']);
+test('active runtime has four routes, three material modes and retains four base colors',async()=>{
+ const [index,css,materialCss,js,lab]=await Promise.all([read('public/index.html'),read('public/css/style.css'),read('public/css/material-modes.css'),read('public/js/pages/showcase.js'),read('public/js/pages/gallery.js')]);
+ assert.deepEqual([...new Set([...index.matchAll(/data-page="([^"]+)"/g)].map(m=>m[1]))],['overview','components','ugc','docs']);
+ assert.match(lab,/\[\['default','普通卡片'\],\['enhanced','更好的卡片'\],\['liquid-glass','液态玻璃'\]\]/);
+ assert.doesNotMatch(index,/data-material-mode=/);
+ assert.match(materialCss,/data-material-mode="liquid-glass"/);
+ assert.match(materialCss,/backdrop-filter: blur\(24px\)/);
+ assert.match(js,/MATERIAL_MODE_KEY/);
  assert.deepEqual([...new Set([...css.matchAll(/#[0-9a-f]{6}\b/gi)].map(m=>m[0].toUpperCase()))].sort(),['#1A1B21','#4A90D9','#D3E4FD','#F9F9FF']);
  assert.doesNotMatch(index+js,/课搭子|加入课程|大学英语|学习搭子|EduSpace|blue-whale/);
  assert.doesNotMatch(css,/linear-gradient|backdrop-filter/);
 });
 test('glass styling is isolated and has accessibility and browser fallbacks',async()=>{
- const css=await read('public/css/laboratory.css');
- assert.match(css,/backdrop-filter:blur\(var\(--lab-blur\)\)/);
+ const css=await read('public/css/gallery.css');
+ assert.match(css,/backdrop-filter:blur\(var\(--material-blur,24px\)\)/);
  assert.match(css,/prefers-reduced-transparency/);
  assert.match(css,/prefers-contrast/);
  assert.match(css,/@supports not/);
- assert.doesNotMatch(css,/:root|\.sidebar|\.mobile-nav|\.md-field/);
+ assert.match(css,/input-surface/);
 });
 test('primary action white text meets normal-text contrast',()=>{
  const blend=(a,b,t)=>a.map((v,i)=>(v*t+b[i]*(1-t))/255);
